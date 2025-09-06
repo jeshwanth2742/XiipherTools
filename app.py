@@ -1,6 +1,15 @@
 import streamlit as st
+import os
 from main import get_user_id, fetch_tweets, calculate_metrics
 from utils import get_start_time, filter_tweets_by_handle
+
+# --- Load API keys from Streamlit Secrets ---
+bearer_token = st.secrets["BEARER_TOKEN"]
+api_key = st.secrets["API_KEY"]
+api_secret = st.secrets["API_KEY_SECRET"]
+access_token = st.secrets["ACCESS_TOKEN"]
+access_token_secret = st.secrets["ACCESS_TOKEN_SECRET"]
+project_app_id = st.secrets["PROJECT_APP_ID"]
 
 # --- Project / Sub-projects ---
 main_project = "@KaitoAI"
@@ -15,30 +24,13 @@ time_range = st.selectbox("Select timeframe", ["24h", "7d", "30d", "90d"])
 
 # 2️⃣ Fetch Contributions
 if st.button("Fetch Contributions") and x_handle:
-
     try:
-        # Get start time based on selected timeframe
         start_time = get_start_time(time_range)
-
-        # Get user ID from handle
-        user_id = get_user_id(x_handle)
-
-        # Fetch tweets since start_time
-        tweets = fetch_tweets(user_id, start_time)
-
-        if not tweets:
-            st.info("No tweets found for this timeframe.")
-        else:
-            # Filter tweets mentioning the selected sub-project (@handle)
-            filtered = filter_tweets_by_handle(tweets, selected_sub_project)
-
-            # Calculate engagement metrics
-            metrics = calculate_metrics(filtered)
-
-            # Display metrics
-            st.subheader(f"Contribution Metrics for {x_handle} → {selected_sub_project} ({time_range})")
-            st.write(metrics)
-
+        user_id = get_user_id(x_handle, bearer_token)
+        tweets = fetch_tweets(user_id, start_time, bearer_token)
+        filtered = filter_tweets_by_handle(tweets, selected_sub_project)
+        metrics = calculate_metrics(filtered)
+        st.subheader(f"Contribution Metrics for {x_handle} → {selected_sub_project} ({time_range})")
+        st.write(metrics)
     except Exception as e:
         st.error(f"Error fetching data: {e}")
-
