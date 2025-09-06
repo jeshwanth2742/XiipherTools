@@ -1,8 +1,8 @@
 import tweepy
+import streamlit as st
 from utils import filter_tweets_by_handle
 
-# Load bearer token from Streamlit secrets or environment
-import streamlit as st
+# Load bearer token from Streamlit Secrets
 bearer_token = st.secrets["BEARER_TOKEN"]
 
 # Setup Tweepy client
@@ -13,11 +13,16 @@ def get_user_id(x_handle: str) -> str:
     user = client.get_user(username=x_handle)
     return user.data.id
 
+def format_rfc3339(dt):
+    """Return RFC3339 datetime string without microseconds."""
+    return dt.replace(microsecond=0).isoformat("T") + "Z"
+
 def fetch_tweets(user_id: str, start_time):
     """Fetch tweets for a user since start_time."""
+    start_time_str = format_rfc3339(start_time)
     tweets = client.get_users_tweets(
         id=user_id,
-        start_time=start_time.isoformat("T")+"Z",
+        start_time=start_time_str,
         tweet_fields=["public_metrics", "text"],
         max_results=100
     )
@@ -32,4 +37,6 @@ def calculate_metrics(tweets):
         "Retweets": sum(t.public_metrics['retweet_count'] for t in tweets),
         "Quotes": sum(t.public_metrics['quote_count'] for t in tweets)
     }
+    return metrics
+
     return metrics
