@@ -13,29 +13,21 @@ x_handle = st.text_input("Enter your X handle (@username)")
 selected_sub_project = st.selectbox("Select sub-project", sub_projects)
 time_range = st.selectbox("Select timeframe", ["24h", "7d", "30d", "90d"])
 
-# 2️⃣ Fetch Contributions
+# 2️⃣ Fetch Contributions with caching
+@st.cache_data(ttl=300)  # cache results for 5 minutes
+def fetch_user_metrics(x_handle, sub_project, time_range):
+    start_time = get_start_time(time_range)
+    user_id = get_user_id(x_handle)
+    tweets = fetch_tweets(user_id, start_time)
+    filtered = filter_tweets_by_handle(tweets, sub_project)
+    metrics = calculate_metrics(filtered)
+    return metrics
+
 if st.button("Fetch Contributions") and x_handle:
     try:
-        # Get start time
-        start_time = get_start_time(time_range)
-        
-        # Fetch user ID
-        user_id = get_user_id(x_handle)
-        
-        # Fetch tweets
-        tweets = fetch_tweets(user_id, start_time)
-        
-        if not tweets:
-            st.info("No tweets found for this timeframe.")
-        else:
-            # Filter tweets mentioning the sub-project
-            filtered = filter_tweets_by_handle(tweets, selected_sub_project)
-            
-            # Calculate metrics
-            metrics = calculate_metrics(filtered)
-            
-            st.subheader(f"Contribution Metrics for {x_handle} → {selected_sub_project} ({time_range})")
-            st.write(metrics)
-
+        metrics = fetch_user_metrics(x_handle, selected_sub_project, time_range)
+        st.subheader(f"Contribution Metrics for {x_handle} → {selected_sub_project} ({time_range})")
+        st.write(metrics)
     except Exception as e:
         st.error(f"Error fetching data: {e}")
+
