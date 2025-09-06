@@ -1,6 +1,8 @@
 import tweepy
 import streamlit as st
 from utils import filter_tweets_by_handle
+from tweepy.errors import TooManyRequests
+import time
 
 # Load bearer token from Streamlit Secrets
 bearer_token = st.secrets["BEARER_TOKEN"]
@@ -18,15 +20,20 @@ def format_rfc3339(dt):
     return dt.replace(microsecond=0).isoformat("T") + "Z"
 
 def fetch_tweets(user_id: str, start_time):
-    """Fetch tweets for a user since start_time."""
+    """Fetch tweets for a user since start_time, handle rate limits."""
     start_time_str = format_rfc3339(start_time)
-    tweets = client.get_users_tweets(
-        id=user_id,
-        start_time=start_time_str,
-        tweet_fields=["public_metrics", "text"],
-        max_results=100
-    )
-    return tweets.data or []
+    while True:
+        try:
+            tweets = client.get_users_tweets(
+                id=user_id,
+                start_time=start_time_str,
+                tweet_fields=["public_metrics", "text"],
+                max_results=100
+            )
+            return tweets.data or []
+        except TooManyRequests:
+            st.warning("Rate limit reached. Waiting 60 seconds...")
+            time.sleep(60)  # wait and retry
 
 def calculate_metrics(tweets):
     """Aggregate engagement metrics."""
@@ -39,4 +46,3 @@ def calculate_metrics(tweets):
     }
     return metrics
 
-    return metrics
